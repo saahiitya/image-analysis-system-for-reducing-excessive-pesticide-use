@@ -1,1 +1,0 @@
-# image-analysis-system-for-reducing-excessive-pesticide-use
