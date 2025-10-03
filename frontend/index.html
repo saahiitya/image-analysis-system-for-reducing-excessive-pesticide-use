@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CropGuard AI Dashboard</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+</head>
+<body>
+  <nav>
+    <h1>🌱 CropGuard AI</h1>
+    <div>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#history">Scan History</a>
+      <a href="#recommendations">Recommendations</a>
+      <a href="#settings">Settings</a>
+    </div>
+    <div>🔔 👤 Farmer John</div>
+  </nav>
+
+  <section class="welcome">
+    <h2>Welcome to Your Smart Farm Dashboard</h2>
+    <p>AI-powered crop disease detection for healthier harvests</p>
+  </section>
+
+  <div class="grid stats">
+    <div class="stat-card stat-green"><h3>0</h3><p>Total Scans</p></div>
+    <div class="stat-card stat-green"><h3>0%</h3><p>Healthy Crops</p></div>
+    <div class="stat-card stat-yellow"><h3>0</h3><p>Active Treatments</p></div>
+    <div class="stat-card stat-blue"><h3>₹0</h3><p>Pesticide Saved</p></div>
+  </div>
+
+  <div class="upload-section">
+    <div class="upload-left">
+      <h3>📸 Scan Your Crops</h3>
+      
+      <label for="cropType" style="font-weight: 600; margin-bottom: 8px; display:block;">Crop Type</label>
+      <select id="cropType">
+        <option>Select crop type...</option>
+        <option value="tomato">Tomato</option>
+        <option value="brinjal">Brinjal (Egg Plant)</option>
+        <option value="capsicum">Capsicum (Bell Pepper)</option>
+      </select>
+
+      <div class="area-input">
+        <label for="areaInput" style="font-weight: 600;">Farm Area (hectares):</label>
+        <input type="number" id="areaInput" value="1.0" min="0.1" step="0.1" />
+      </div>
+
+      <label class="upload-box" for="fileInput">
+        📁 Drag and drop your images here, or click to browse
+      </label>
+      <input type="file" id="fileInput" multiple accept="image/*" />
+      
+      <div class="camera-section" id="cameraSection">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div style="margin-top: 15px;">
+          <button id="captureBtn" class="green">📸 Capture Photo</button>
+          <button id="stopCameraBtn">❌ Stop Camera</button>
+        </div>
+      </div>
+      
+      <div class="images-preview" id="preview"></div>
+      <div class="loading" id="loading">🤖 Analyzing images with AI...</div>
+
+      <div class="upload-btns">
+        <button id="cameraBtn">📹 Open Camera</button>
+        <button id="locationBtn">📍 Get Location</button>
+        <button id="weatherBtn">🌤 Update Weather</button>
+        <button class="green" id="analyzeBtn">🤖 Analyze with AI</button>
+      </div>
+      
+      <div class="analysis-results" id="analysisResults"></div>
+    </div>
+
+    <div class="upload-right">
+      <div class="card">
+        <h4>🕒 Recent Scans</h4>
+        <p>No recent scans available</p>
+        <p class="small-text">Upload images to see analysis history</p>
+      </div>
+
+      <div class="card">
+        <h4>🌤 Weather Conditions</h4>
+        <p><strong>Loading...</strong></p>
+        <p class="small-text">Fetching current weather data...</p>
+      </div>
+
+      <div class="card">
+        <h4>⚠ Spraying Conditions</h4>
+        <span class="highlight-warning">Checking Conditions</span>
+        <p>Analyzing weather for optimal spraying time...</p>
+        <p class="small-text"><strong>Best Time:</strong> Morning (6-10 AM) / Evening (4-7 PM)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Treatment History -->
+  <div class="grid" style="grid-template-columns: 3fr 1.8fr; margin: 0 60px 80px 60px; gap: 36px;">
+    <div class="card">
+      <h4>📊 Treatment Progress</h4>
+      <div style="text-align:center; margin: 60px 0; color: #bcc9ce;">
+        <div style="font-size: 34px;">📈</div>
+        <div>Upload images to see treatment analytics and progress charts</div>
+        <div style="margin-top: 20px; font-size: 14px;">
+          AI analysis will provide detailed insights into crop health trends
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 24px;">
+        <div class="stat-card stat-green" style="box-shadow:none; padding: 20px 0;">
+          <h3 style="font-size: 28px; margin-bottom: 4px;">0</h3>
+          <p>Completed</p>
+        </div>
+        <div class="stat-card stat-yellow" style="box-shadow:none; padding: 20px 0;">
+          <h3 style="font-size: 28px; margin-bottom: 4px;">0</h3>
+          <p>Active</p>
+        </div>
+        <div class="stat-card stat-blue" style="box-shadow:none; padding: 20px 0;">
+          <h3 style="font-size: 28px; margin-bottom: 4px;">0</h3>
+          <p>Total Treatments</p>
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 26px;">
+      <div class="card">
+        <h4>🏥 Current Treatments</h4>
+        <p>No active treatments</p>
+        <p class="small-text">Treatments will appear here after disease detection</p>
+      </div>
+      
+      <div class="card environmental-impact">
+        <h4>🌍 Environmental Impact</h4>
+        <p>Pesticide Reduction <span class="completed">-0%</span></p>
+        <p>Water Usage <span style="color: #4677cc;">0L</span></p>
+        <p>Cost Savings <span style="color:#1f7a3a;">₹0</span></p>
+        <hr />
+        <p class="eco-practice" style="color:#1f7a3a; font-weight: 600; margin-top: 12px;">
+          ✔ Eco-Friendly Practices
+        </p>
+        <p>Start using CropGuard AI to contribute to sustainable farming!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="background: #fff; padding: 40px 60px; margin-top: 40px; border-top: 1px solid #e9ecef;">
+    <div style="text-align: center; color: #6c757d;">
+      <h3 style="color: #1f7a3a; margin-bottom: 15px;">🌱 CropGuard AI</h3>
+      <p>AI-powered precision pesticide management for sustainable agriculture</p>
+      <p style="font-size: 14px; margin-top: 20px;">
+        Supporting farmers with intelligent crop protection solutions | Version 1.0.0
+      </p>
+      <div style="margin-top: 20px;">
+        <span style="margin: 0 10px;">📧 support@cropguard.ai</span>
+        <span style="margin: 0 10px;">📱 +91-XXXX-XXXXXX</span>
+        <span style="margin: 0 10px;">🌐 www.cropguard.ai</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
