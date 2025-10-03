@@ -19,8 +19,9 @@ ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"]
 MAX_IMAGES_PER_REQUEST = 10
 
 # AI Model Settings
+MODEL_PATH = "models/crop_disease_model"  # Path to your trained model
 MODEL_CONFIDENCE_THRESHOLD = 0.7
-MOCK_AI_ENABLED = True  # Set to False when real AI model is integrated
+MOCK_AI_ENABLED = False  # Set to True only for testing without model
 
 # Currency Settings
 CURRENCY = "INR"

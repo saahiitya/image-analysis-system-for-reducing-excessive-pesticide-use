@@ -11,7 +11,7 @@ from datetime import datetime
 from PIL import Image
 
 from ..models.ai_engine import detect_disease_from_image
-from ..models.disease_db import get_disease_info, DISEASE_DATABASE
+from ..models.disease_db import DISEASE_DATABASE
 from .utils import (
     generate_treatment_recommendations,
     generate_mock_weather_data,
@@ -98,52 +98,65 @@ async def analyze_crop(
                     detail=f"AI analysis failed for {file.filename}: {str(e)}"
                 )
             
-            # Process results
-            if detection_result and detection_result["disease"] != "healthy":
+            # Process results from your trained model
+            if detection_result and detection_result["disease"] not in ["healthy", "uncertain", "unknown", "error"]:
                 disease_key = detection_result["disease"]
                 severity = detection_result["severity"]
                 
-                # Get disease information
-                disease_info = get_disease_info(crop_type, disease_key)
-                if not disease_info:
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Disease information not found for {disease_key}"
+                # Generate treatment recommendations based on detected disease
+                pesticide_recommendations = []
+                if severity != "unknown":
+                    pesticide_recommendations = generate_treatment_recommendations(
+                        crop_type, disease_key, severity, area_hectares
                     )
-                
-                # Generate treatment recommendations
-                pesticide_recommendations = generate_treatment_recommendations(
-                    crop_type, disease_key, severity, area_hectares
-                )
                 
                 results.append({
                     "filename": file.filename,
                     "image_base64": img_base64,
                     "detection": {
-                        "disease_name": disease_info["name"],
-                        "description": disease_info["description"],
-                        "symptoms": disease_info.get("symptoms", []),
+                        "disease_name": detection_result.get("disease_name", "Unknown Disease"),
+                        "description": detection_result.get("description", "Disease detected by AI model"),
                         "confidence": detection_result["confidence"],
                         "severity": severity,
                         "affected_area_percentage": detection_result["affected_area_percentage"],
-                        "health_score": detection_result.get("health_score", 0)
+                        "model_prediction": detection_result.get("model_prediction", ""),
+                        "ai_analysis": True
                     },
                     "pesticide_recommendations": pesticide_recommendations,
                     "timestamp": datetime.now().isoformat()
                 })
-            else:
-                # Healthy crop
+            elif detection_result and detection_result["disease"] == "healthy":
+                # Healthy crop detected by your model
                 results.append({
                     "filename": file.filename,
                     "image_base64": img_base64,
                     "detection": {
-                        "disease_name": "Healthy",
-                        "description": "No disease detected - crop appears healthy",
-                        "symptoms": [],
+                        "disease_name": detection_result.get("disease_name", "Healthy"),
+                        "description": detection_result.get("description", "No disease detected - crop appears healthy"),
                         "confidence": detection_result.get("confidence", 0.95),
                         "severity": "none",
                         "affected_area_percentage": 0,
-                        "health_score": detection_result.get("health_score", 0.9)
+                        "model_prediction": detection_result.get("model_prediction", "healthy"),
+                        "ai_analysis": True
+                    },
+                    "pesticide_recommendations": [],
+                    "timestamp": datetime.now().isoformat()
+                })
+            else:
+                # Handle uncertain, unknown, or error cases
+                status = detection_result.get("disease", "unknown") if detection_result else "error"
+                results.append({
+                    "filename": file.filename,
+                    "image_base64": img_base64,
+                    "detection": {
+                        "disease_name": detection_result.get("disease_name", "Analysis Failed") if detection_result else "Processing Error",
+                        "description": detection_result.get("description", "Could not analyze image") if detection_result else "Image processing failed",
+                        "confidence": detection_result.get("confidence", 0.0) if detection_result else 0.0,
+                        "severity": detection_result.get("severity", "unknown") if detection_result else "unknown",
+                        "affected_area_percentage": 0,
+                        "model_prediction": detection_result.get("model_prediction", "error") if detection_result else "error",
+                        "ai_analysis": True,
+                        "status": status
                     },
                     "pesticide_recommendations": [],
                     "timestamp": datetime.now().isoformat()
