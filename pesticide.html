@@ -274,6 +274,23 @@
     .environmental-impact p.caution span {
       color: #ac8200;
     }
+
+    /* Camera UI */
+    .camera-actions {
+      display: flex;
+      gap: 16px;
+      margin: 6px 0 16px 0;
+      flex-wrap: wrap;
+    }
+    .video-element {
+      display: none;
+      width: 100%;
+      max-height: 260px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgb(22 31 61 / 0.1);
+      background: #000;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
@@ -311,10 +328,17 @@
         <option>Capsicum(Bell Pepper)</option>
       </select>
 
+      <div class="camera-actions">
+        <button id="openCameraBtn">📷 Open Camera</button>
+        <button id="captureBtn" disabled>📸 Capture Photo</button>
+        <button id="stopCameraBtn" disabled>⏹ Stop Camera</button>
+      </div>
+      <video id="camera" class="video-element" autoplay playsinline muted></video>
+
       <label class="upload-box" for="fileInput">
         Drag and drop your images here, or click to browse
       </label>
-      <input type="file" id="fileInput" multiple accept="image/*" />
+      <input type="file" id="fileInput" multiple accept="image/*" capture="environment" />
       <div class="images-preview" id="preview"></div>
 
       <div class="upload-btns">
@@ -378,7 +402,7 @@
         <h4>🌍 Environmental Impact</h4>
         <p>Pesticide Reduction <span class="completed">-0%</span></p>
         <p>Water Usage <span class="txt-blue">0L</span></p>
-        <p>Cost Savings <span style="color:#1f7a3a;">₹0</span></p>
+        <p>Cost Savings <span id="costSavings" data-inr="0" style="color:#1f7a3a;"></span></p>
         <hr />
         <p class="eco-practice" style="color:#1f7a3a; font-weight: 600; margin-top: 12px;">
           ✔ Eco-Friendly Practices
@@ -391,6 +415,13 @@
   <script>
     const fileInput = document.getElementById('fileInput');
     const preview = document.getElementById('preview');
+    const videoEl = document.getElementById('camera');
+    const openCameraBtn = document.getElementById('openCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const stopCameraBtn = document.getElementById('stopCameraBtn');
+    const costSavingsEl = document.getElementById('costSavings');
+
+    let mediaStream = null;
 
     document.querySelector('.upload-box').addEventListener('click', () => {
       fileInput.click();
@@ -405,6 +436,74 @@
         preview.appendChild(img);
       });
     });
+
+    // INR currency formatting helper
+    const formatINR = (value) => {
+      try {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value || 0));
+      } catch (e) {
+        return `₹${Number(value || 0).toLocaleString('en-IN')}`;
+      }
+    };
+
+    if (costSavingsEl) {
+      const initial = Number(costSavingsEl.dataset.inr || 0);
+      costSavingsEl.textContent = formatINR(initial);
+    }
+
+    // Camera controls
+    async function openCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera is not supported in this browser or context. Use a device with camera support over HTTPS.');
+        return;
+      }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        videoEl.srcObject = mediaStream;
+        videoEl.style.display = 'block';
+        captureBtn.disabled = false;
+        stopCameraBtn.disabled = false;
+        openCameraBtn.disabled = true;
+      } catch (err) {
+        console.error('Error opening camera:', err);
+        alert('Unable to access camera. Please grant permission and try again.');
+      }
+    }
+
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+      }
+      mediaStream = null;
+      videoEl.srcObject = null;
+      videoEl.style.display = 'none';
+      captureBtn.disabled = true;
+      stopCameraBtn.disabled = true;
+      openCameraBtn.disabled = false;
+    }
+
+    function capturePhoto() {
+      if (!mediaStream || !videoEl.videoWidth) return;
+      const canvas = document.createElement('canvas');
+      const targetWidth = 960;
+      const ratio = videoEl.videoHeight / videoEl.videoWidth;
+      canvas.width = targetWidth;
+      canvas.height = Math.round(targetWidth * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const img = document.createElement('img');
+        img.src = url;
+        img.title = `capture-${Date.now()}.jpg`;
+        preview.appendChild(img);
+      }, 'image/jpeg', 0.92);
+    }
+
+    openCameraBtn?.addEventListener('click', openCamera);
+    stopCameraBtn?.addEventListener('click', stopCamera);
+    captureBtn?.addEventListener('click', capturePhoto);
   </script>
 </body>
 </html>
