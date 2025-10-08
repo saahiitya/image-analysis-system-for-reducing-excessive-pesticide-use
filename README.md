@@ -88,3 +88,31 @@ To stop and remove all the containers, networks, and volumes created by `docker-
 
 ```bash
 docker-compose down
+
+
+├── precision-agriculture-ai/
+│   ├── docker-compose.yml
+│   │
+│   ├── frontend/
+│   │   ├── Dockerfile
+│   │   ├── package.json
+│   │   ├── ... (React/Vue/Angular files)
+│   │
+│   ├── backend/
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   ├── app.py / server.js
+│   │   ├── ... (API logic, handlers)
+│   │
+│   ├── ai-model-service/
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   ├── model.py
+│   │   ├── model.pkl / model.h5 (trained model file)
+│   │   ├── ... (data processing scripts)
+│   │
+│   └── database/
+│       └── ... (optional, if you're using a database container)
+│
+└── .gitignore
+
