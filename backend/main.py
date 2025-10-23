@@ -132,3 +132,93 @@ async def analyze_image(
             }
         }
     )
+
+
+@app.get("/api/stats")
+def stats():
+    rows = db.get_scans(limit=10000)
+    total_scans = len(rows)
+    if total_scans == 0:
+        return {
+            "total_scans": 0,
+            "healthy_percent": 0.0,
+            "active_treatments": 0,
+            "liters_recommended": 0.0,
+            "cost_total_rupees": 0.0,
+            "liters_saved": 0.0,
+            "cost_saved_rupees": 0.0,
+            "reduction_percent": 0.0,
+        }
+
+    def _to_float_cost(s: str) -> float:
+        try:
+            return float(s.replace("₹", "").strip())
+        except Exception:
+            return 0.0
+
+    def _to_float_liters(s: str) -> float:
+        try:
+            return float(s.replace("L", "").strip())
+        except Exception:
+            return 0.0
+
+    low_count = 0
+    active_treatments = 0
+    liters_total = 0.0
+    cost_total = 0.0
+    liters_saved_total = 0.0
+    cost_saved_total = 0.0
+    baseline_total = 0.0
+
+    for row in rows:
+        _, crop_type, _image_path, farm_size, _location, weather_conditions, disease, severity, _reco, total_amount, cost_estimate, _ts = row
+
+        # Recommended plan (recompute to get numeric values reliably)
+        reco = compute_pesticide_plan(
+            crop_type=crop_type,
+            disease=disease,
+            severity=severity,
+            farm_size_ha=float(farm_size),
+            weather_conditions=weather_conditions,
+        )
+        liters = _to_float_liters(reco["recommended_treatment"]["dosage_calculation"]["total_amount_needed"])
+        cost_rupees = _to_float_cost(reco["recommended_treatment"]["dosage_calculation"]["cost_estimate"])
+
+        # Baseline plan: assume farmer would spray "high" severity without weather adjustment
+        baseline = compute_pesticide_plan(
+            crop_type=crop_type,
+            disease=disease,
+            severity="high",
+            farm_size_ha=float(farm_size),
+            weather_conditions=None,
+        )
+        baseline_liters = _to_float_liters(baseline["recommended_treatment"]["dosage_calculation"]["total_amount_needed"])
+        baseline_cost = _to_float_cost(baseline["recommended_treatment"]["dosage_calculation"]["cost_estimate"])
+
+        liters_total += liters
+        cost_total += cost_rupees
+        baseline_total += baseline_liters
+
+        saved_liters = max(baseline_liters - liters, 0.0)
+        saved_cost = max(baseline_cost - cost_rupees, 0.0)
+        liters_saved_total += saved_liters
+        cost_saved_total += saved_cost
+
+        if severity == "low":
+            low_count += 1
+        if severity in ("moderate", "high"):
+            active_treatments += 1
+
+    healthy_percent = round((low_count / total_scans) * 100.0, 1)
+    reduction_percent = round((liters_saved_total / baseline_total) * 100.0, 1) if baseline_total > 0 else 0.0
+
+    return {
+        "total_scans": total_scans,
+        "healthy_percent": healthy_percent,
+        "active_treatments": active_treatments,
+        "liters_recommended": round(liters_total, 2),
+        "cost_total_rupees": round(cost_total, 2),
+        "liters_saved": round(liters_saved_total, 2),
+        "cost_saved_rupees": round(cost_saved_total, 2),
+        "reduction_percent": reduction_percent,
+    }
