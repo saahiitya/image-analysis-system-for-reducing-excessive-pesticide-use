@@ -15,6 +15,7 @@ function App() {
   const [error, setError] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
+  const [stats, setStats] = useState({ total_scans: 0, healthy_percent: 0, active_treatments: 0, liters_saved: 0 });
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -22,6 +23,7 @@ function App() {
 
   useEffect(() => {
     fetchScanHistory();
+    fetchStats();
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -36,6 +38,15 @@ function App() {
     } catch (err) {
       console.error('Failed to fetch scan history:', err);
       setError('Failed to load scan history.');
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/stats`);
+      setStats(response.data);
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
     }
   };
 
@@ -149,10 +160,10 @@ function App() {
       </section>
 
       <div className="grid stats">
-        <div className="stat-card stat-green"><h3>{scanHistory.length}</h3><p>Total Scans</p></div>
-        <div className="stat-card stat-green"><h3>0%</h3><p>Healthy Crops</p></div>
-        <div className="stat-card stat-yellow"><h3>0</h3><p>Active Treatments</p></div>
-        <div className="stat-card stat-blue"><h3>0L</h3><p>Pesticide Saved</p></div>
+        <div className="stat-card stat-green"><h3>{stats.total_scans}</h3><p>Total Scans</p></div>
+        <div className="stat-card stat-green"><h3>{stats.healthy_percent}%</h3><p>Healthy Crops</p></div>
+        <div className="stat-card stat-yellow"><h3>{stats.active_treatments}</h3><p>Active Treatments</p></div>
+        <div className="stat-card stat-blue"><h3>{stats.liters_saved}L</h3><p>Pesticide Saved</p></div>
       </div>
 
       <div className="upload-section">
@@ -166,6 +177,15 @@ function App() {
             <option value="capsicum">Capsicum (Bell Pepper)</option>
           </select>
 
+          <label htmlFor="farmSize" style={{fontWeight: 600, marginBottom: '8px', display:'block'}}>Farm Size (hectares)</label>
+          <input id="farmSize" type="number" min="0" step="0.01" value={farmSize} onChange={(e) => setFarmSize(parseFloat(e.target.value) || 0)} style={{padding:'12px 14px', borderRadius:'12px', border:'1.8px solid #cbd7e1', fontSize:'16px', marginBottom:'16px'}} />
+
+          <label htmlFor="location" style={{fontWeight: 600, marginBottom: '8px', display:'block'}}>Location</label>
+          <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Village/District" style={{padding:'12px 14px', borderRadius:'12px', border:'1.8px solid #cbd7e1', fontSize:'16px', marginBottom:'16px'}} />
+
+          <label htmlFor="weather" style={{fontWeight: 600, marginBottom: '8px', display:'block'}}>Weather Conditions</label>
+          <input id="weather" type="text" value={weatherConditions} onChange={(e) => setWeatherConditions(e.target.value)} placeholder="e.g., hot, windy, rain forecast" style={{padding:'12px 14px', borderRadius:'12px', border:'1.8px solid #cbd7e1', fontSize:'16px', marginBottom:'24px'}} />
+
           {isCameraActive ? (
             <div className="camera-live">
               <video ref={videoRef} autoPlay playsInline className="video-stream"></video>
@@ -177,6 +197,10 @@ function App() {
                 Drag and drop your images here, or click to browse
               </label>
               <input type="file" id="fileInput" multiple accept="image/*" onChange={handleFileSelect} />
+              <div style={{display:'flex', gap:'12px', marginTop:'16px'}}>
+                <button onClick={startCamera}>Open Camera</button>
+                {isCameraActive && <button onClick={stopCamera}>Stop Camera</button>}
+              </div>
             </>
           )}
           
@@ -201,7 +225,7 @@ function App() {
             <h4>🕒 Recent Scans</h4>
             {scanHistory.length > 0 ? (
               <ul>
-                {scanHistory.slice(0, 5).map(scan => (
+                {scanHistory.slice(0, 7).map(scan => (
                   <li key={scan.id}>
                     {scan.crop_type} - {scan.disease_detected} ({new Date(scan.scan_timestamp).toLocaleDateString()})
                   </li>
@@ -210,6 +234,9 @@ function App() {
             ) : (
               <p>No recent scans</p>
             )}
+            <div style={{marginTop:'8px', fontSize:'14px', color:'#6c7a84'}}>
+              Total saved: <strong>{stats.liters_saved}L</strong>
+            </div>
           </div>
 
           <div className="card">
@@ -254,11 +281,11 @@ function App() {
           <div style={{display: 'flex', flexDirection: 'column', gap: '26px'}}>
             <div className="card">
               <h4>🏥 Current Treatments</h4>
-              <p>Disease: **{analysis.recommendations.disease_detected}**</p>
-              <p>Severity: **{analysis.recommendations.severity_assessment}**</p>
+              <p>Disease: <strong>{analysis.recommendations.disease_detected}</strong></p>
+              <p>Severity: <strong>{analysis.recommendations.severity_assessment}</strong></p>
               <p>Pesticides: {analysis.recommendations.recommended_treatment?.primary_pesticides.join(', ')}</p>
-              <p>Dosage: **{analysis.recommendations.recommended_treatment?.dosage_calculation.total_amount_needed}**</p>
-              <p>Cost: **{analysis.recommendations.recommended_treatment?.dosage_calculation.cost_estimate}**</p>
+              <p>Dosage: <strong>{analysis.recommendations.recommended_treatment?.dosage_calculation.total_amount_needed}</strong></p>
+              <p>Cost: <strong>{analysis.recommendations.recommended_treatment?.dosage_calculation.cost_estimate}</strong></p>
             </div>
             <div className="card environmental-impact">
               <h4>🌍 Environmental Impact</h4>
